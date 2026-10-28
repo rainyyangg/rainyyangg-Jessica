@@ -1,0 +1,39 @@
+name: Update photo albums automatically
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.JPG'
+      - '**/*.JPEG'
+      - '**/*.png'
+      - '**/*.webp'
+      - '**/*.gif'
+      - '**/*.avif'
+      - 'scripts/build_albums.py'
+      - '.github/workflows/auto-albums.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-albums:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate catalog
+        run: python scripts/build_albums.py
+      - name: Publish catalog
+        run: |
+          if ! git diff --quiet -- albums.json || [ -n "$(git ls-files --others --exclude-standard albums.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add albums.json
+            git commit -m "Automatically refresh photo albums"
+            git push
+          fi
