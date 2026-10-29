@@ -8,7 +8,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parent.parent
 EXISTING = {"Hong-Kong-Airport-20261008", "Nana-Jacqueline-20261006", "Hong-Kong-Airport-20261005", "Incheon-Airport-20261005"}
 EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
-pattern = re.compile(r"^(.+)-(20\d{6})$")
+pattern = re.compile(r"^(.+)-(20\d{6})(?:-(\d+\.\d+))?$")
 albums = []
 for folder in sorted(ROOT.iterdir()):
     if not folder.is_dir() or folder.name.startswith("."):
@@ -16,7 +16,7 @@ for folder in sorted(ROOT.iterdir()):
     match = pattern.fullmatch(folder.name)
     if not match:
         continue
-    label, stamp = match.groups()
+    label, stamp, version = match.groups()
     photographers = []
     photos = []
     for person in sorted(folder.iterdir(), key=lambda p: p.name.casefold()):
@@ -29,7 +29,7 @@ for folder in sorted(ROOT.iterdir()):
         for file in files:
             photos.append({"photographer": person.name, "name": file.name, "src": "/".join(quote(s, safe="") for s in (folder.name, person.name, file.name))})
     if photos:
-        albums.append({"id": folder.name, "title": label.replace("-", " "), "date": f"{stamp[:4]}.{stamp[4:6]}.{stamp[6:]}", "photographers": photographers, "photos": photos, "existing": folder.name in EXISTING})
+        albums.append({"id": folder.name, "title": label.replace("-", " ") + (f" {version}" if version else ""), "date": f"{stamp[:4]}.{stamp[4:6]}.{stamp[6:]}", "photographers": photographers, "photos": photos, "existing": folder.name in EXISTING})
 out = ROOT / "albums.json"
 out.write_text(json.dumps(albums, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 print(f"Generated {len(albums)} albums, {sum(len(a['photos']) for a in albums)} photos")
