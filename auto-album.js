@@ -9,7 +9,7 @@ if(!album){title.textContent='ALBUM NOT FOUND';summary.textContent='找不到相
 title.textContent=album.title.toUpperCase();
 document.title=album.title+' — STILL, JESSICA';
 const hasStages=album.photos.some(p=>p.stage==='rehearsal');
-let stage='all',selected='all',visible=[],currentIndex=0;
+let stage=hasStages?'performance':'all',selected='all',visible=[],currentIndex=0;
 function showAt(i){
  if(!visible.length)return;
  currentIndex=(i+visible.length)%visible.length;
@@ -27,18 +27,22 @@ function render(){
  const names=[...new Set(stagePhotos.map(p=>p.photographer))];
  if(selected!=='all'&&!names.includes(selected))selected='all';
  if(hasStages){
-  const stages=document.createElement('div');stages.className='filters';stages.style.cssText='width:100%;margin:0 0 12px';
-  for(const [key,label] of [['all','全部照片'],['rehearsal','彩排'],['performance','正式演出']]){
-   stages.append(button(label,stage===key,()=>{stage=key;render()}));
-  }
+  const stages=document.createElement('div');stages.className='stage-tabs';
+  const performanceCount=album.photos.filter(p=>(p.stage||'performance')==='performance').length;
+  const rehearsalCount=album.photos.filter(p=>p.stage==='rehearsal').length;
+  stages.append(button('演唱會 ('+performanceCount+')',stage==='performance',()=>{stage='performance';selected='all';render()}));
+  stages.append(button('彩排 ('+rehearsalCount+')',stage==='rehearsal',()=>{stage='rehearsal';selected='all';render()}));
   filters.append(stages);
+  const heading=document.createElement('h2');heading.className='stage-heading';heading.textContent=stage==='rehearsal'?'彩排':'演唱會';filters.append(heading);
  }
- const photographers=document.createElement('div');photographers.className='filters';photographers.style.cssText='width:100%;margin:0';
- photographers.append(button('全部攝影者',selected==='all',()=>{selected='all';render()}));
- for(const name of names)photographers.append(button(name,selected===name,()=>{selected=name;render()}));
+ const photographers=document.createElement('div');photographers.className='photographer-tabs';
+ for(const name of names){
+  const count=stagePhotos.filter(p=>p.photographer===name).length;
+  photographers.append(button(name+' ('+count+')',selected===name,()=>{selected=name;render()}));
+ }
  filters.append(photographers);
  visible=stagePhotos.filter(p=>selected==='all'||p.photographer===selected);
- summary.textContent=album.date+' · '+visible.length+' / '+album.photos.length+' photos · '+names.length+' photographers';
+ summary.textContent=album.date+' · '+album.photos.length+' 張可瀏覽照片 · '+(hasStages?'演唱會 / 彩排 · ':'')+'依攝影者分類';
  grid.replaceChildren();
  for(const [i,item] of visible.entries()){
   const b=document.createElement('button');b.className='photo-tile';
@@ -47,6 +51,7 @@ function render(){
   b.append(img,caption);b.onclick=()=>showAt(i);grid.append(b);
  }
 }
+
 render();
 box.querySelector('.photo-nav.prev').onclick=()=>showAt(currentIndex-1);
 box.querySelector('.photo-nav.next').onclick=()=>showAt(currentIndex+1);
